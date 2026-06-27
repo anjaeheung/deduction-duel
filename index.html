@@ -176,7 +176,9 @@ function renderWrite(){
   const box=document.createElement('div'); box.className='codebox';
   const ta=document.createElement('textarea'); ta.readOnly=true;
   const cp=document.createElement('button'); cp.className='tbtn'; cp.textContent='📋 복사'; cp.style.marginTop='6px';
-  box.appendChild(ta); box.appendChild(cp); writeEl.appendChild(box);
+  const nx=document.createElement('button'); nx.className='btn'; nx.textContent='다음으로 →'; nx.style.marginTop='10px';
+  nx.addEventListener('click',e=>{ e.stopPropagation(); window.location.href='https://anjaeheung.github.io/interlude/'; });
+  box.appendChild(ta); box.appendChild(cp); box.appendChild(nx); writeEl.appendChild(box);
   gen.onclick=()=>{
     const a=[]; for(let k=0;k<NB;k++) a.push('');
     writeEl.querySelectorAll('.qbody input').forEach(inp=>{ a[+inp.dataset.i]=inp.value.trim(); });

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>추리 페이즈 — 1:1</title>
+<style>
+  :root{--bg:#0c0e13;--panel:#151823;--line:#2a3040;--ink:#e9ecf2;--muted:#8b93a6;--gold:#ffd54a;--ok:#7fd6a0;--no:#ff6b6b;--blue:#5fb4ff;}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{background:radial-gradient(120% 90% at 50% 0%,#1a1f2b 0%,var(--bg) 60%);color:var(--ink);
+    font-family:"Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;min-height:100vh;padding-bottom:40px}
+  header{width:100%;max-width:780px;padding:14px 16px 4px;display:flex;flex-direction:column;gap:10px}
+  .titlerow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  h1{margin:0;font-size:18px;letter-spacing:2px}
+  #timer{font-variant-numeric:tabular-nums;font-size:20px;font-weight:800;color:var(--gold);
+     background:#171b27;border:1px solid var(--line);border-radius:10px;padding:5px 14px}
+  #timer.over{color:var(--no);border-color:#7a3636}
+  .tbtns button,.tbtn{background:#1c2029;border:1px solid var(--line);color:var(--ink);
+     padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12.5px;font-family:inherit}
+  .tbtns button:hover{border-color:var(--gold);color:var(--gold)}
+  .tabs{display:flex;gap:8px}
+  .tab{background:#1c2029;border:1px solid var(--line);color:var(--muted);padding:8px 16px;border-radius:10px;
+     cursor:pointer;font-size:13.5px;font-weight:700;font-family:inherit}
+  .tab.on{color:#0e1014;background:var(--gold);border-color:var(--gold)}
+  main{width:100%;max-width:780px;padding:6px 16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:12px 0}
+  .qtitle{font-size:15px;font-weight:800;color:#dfe3ea;margin-bottom:10px;letter-spacing:.5px}
+  .qbody{font-size:14.5px;line-height:2.1;color:#dfe2ea;white-space:pre-wrap}
+  .qbody input{background:#0e1118;border:none;border-bottom:2px solid #3a445e;
+     color:var(--blue);font-size:14.5px;font-family:inherit;padding:2px 6px;min-width:120px;text-align:center;margin:0 2px}
+  .qbody input.s{min-width:42px;width:42px}
+  .qbody input:focus{outline:none;border-bottom-color:var(--gold)}
+  .ans{display:inline-flex;align-items:center;gap:6px;margin:0 3px;padding:1px 4px;border-radius:7px;background:#10131b;vertical-align:middle}
+  .ans .v{color:var(--blue);font-size:14px;min-width:40px;text-align:center}
+  .ans .v.empty{color:var(--muted);font-style:italic}
+  .ans .tg{display:inline-flex;gap:2px}
+  .ans .tg b{cursor:pointer;font-size:12px;font-weight:800;border:1px solid var(--line);border-radius:6px;
+     padding:1px 6px;color:var(--muted);user-select:none}
+  .ans .tg b.o.sel{background:rgba(127,214,160,.18);color:var(--ok);border-color:#2f6f5d}
+  .ans .tg b.x.sel{background:rgba(255,107,107,.18);color:var(--no);border-color:#7a3636}
+  .namerow{display:flex;align-items:center;gap:10px;margin:6px 0 4px}
+  .namerow input{background:#0e1118;border:1px solid var(--line);color:var(--ink);border-radius:9px;
+     padding:9px 12px;font-size:14px;font-family:inherit;flex:1;max-width:240px}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .btn{background:linear-gradient(180deg,#243047,#1a2235);border:1px solid var(--gold);color:var(--gold);
+     font-weight:800;padding:11px 20px;border-radius:11px;cursor:pointer;font-size:14px;font-family:inherit}
+  .btn:hover{background:#2a3550;color:#fff}
+  .codebox{margin-top:12px;display:none}
+  .codebox textarea{width:100%;height:90px;background:#0e1118;border:1px solid var(--line);color:#bfe0ff;
+     border-radius:10px;padding:10px;font-size:12px;font-family:ui-monospace,monospace;resize:vertical}
+  .hintline{font-size:12.5px;color:var(--muted);margin:4px 0}
+  #scorebar{position:sticky;bottom:10px;align-self:center;margin-top:14px;background:#171b27;border:1px solid var(--gold);
+     border-radius:999px;padding:9px 20px;font-weight:800;font-size:15px;color:var(--gold);
+     box-shadow:0 8px 24px rgba(0,0,0,.4);display:none}
+  .gpaste{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+  .gpaste textarea{flex:1;min-width:240px;height:60px;background:#0e1118;border:1px solid var(--line);color:#cfe0ff;
+     border-radius:10px;padding:8px;font-size:12px;font-family:ui-monospace,monospace;resize:vertical}
+  .who{font-size:13.5px;color:var(--ink);margin:6px 0}.who b{color:var(--gold)}
+  .err{color:var(--no);font-size:12.5px}
+</style>
+</head>
+<body>
+  <header>
+    <div class="titlerow">
+      <h1>추리 페이즈 — 1:1</h1>
+      <div id="timer">15:00</div>
+    </div>
+    <div class="titlerow">
+      <div class="tabs">
+        <button class="tab on" id="tabWrite">✍️ 답안 작성</button>
+        <button class="tab" id="tabGrade">🧮 GM 채점</button>
+      </div>
+      <div class="tbtns" id="timerCtl">
+        <button id="tStart">▶ 시작</button>
+        <button id="tReset">⟲ 리셋</button>
+      </div>
+    </div>
+  </header>
+  <main>
+    <div id="write"></div>
+    <div id="grade" style="display:none"></div>
+  </main>
+
+<script>
+/* ============================================================
+   문제·빈칸 정의 (정답은 들어있지 않음 — GM이 직접 채점)
+   "텍스트" = 그대로 / {b:1}=일반 빈칸 / {b:'s'}=짧은 빈칸(시/분)
+   ============================================================ */
+const QUESTIONS = [
+ {title:"문제 1. 의뢰서에 대하여", parts:[
+   "탐정사무소 나가구츠에 의뢰서를 보낸 범인은 ", {b:1}, " 이다.\n",
+   "그 증거는 ", {b:1}, " 에서 알 수 있다.\n",
+   {b:1}, " 은, ", {b:1}, " 가 ", {b:1}, " 로서 ", {b:1}, " 에게 의심받고 있는 것을 알았다.\n",
+   {b:1}, " 은 ", {b:1}, " 를 지키기 위해, 약에라도 매달리는 심정으로 의뢰서를 보내붙였다.",
+ ]},
+ {title:"문제 2. 살인사건에 대하여", parts:[
+   "도이와 다이스케를 살해한 진범은 ", {b:1}, " 이다. 그 증거는 ", {b:1}, " 에서 알 수 있다.\n",
+   "그러나, 야미쿠라 창고는 완전한 밀실이며, 안에는 카자마 미나토밖에 없었다. 즉, 이능 없이는 실현 불가능하다. ",
+   {b:1}, " 는, 이능을 써서 밀실 살인사건을 실현한 것이다.",
+ ]},
+ {title:"문제 3. 이능에 대하여  (이능 ②~④는 순서 무관)", parts:[
+   "쓰였을 가능성이 있는 이능은 4가지. 그중 진범이 쓴 이능은 ", {b:1}, " 이다.\n소거법으로 생각하자.\n",
+   "· ", {b:1}, " 은 ", {b:1}, " 때문에 불가능하다.\n",
+   "· ", {b:1}, " 은 ", {b:1}, " 때문에 불가능하다.\n",
+   "· ", {b:1}, " 은 ", {b:1}, " 때문에 불가능하다.\n",
+   "즉, 사용된 이능은 ", {b:1}, " 일 가능성이 높다.",
+ ]},
+ {title:"문제 4. 진범의 행동에 대하여  (난이도 높음)", parts:[
+   {b:'s'}, " 시 ", {b:'s'}, " 분 : 왜건 R이 도어 A 앞에 도착했을 때, 진범은 ", {b:1}, " 에 있었다.\n  그것은 ", {b:1}, " 에서 예상할 수 있다.\n",
+   {b:'s'}, " 시 ", {b:'s'}, " 분 : 첫 발째의 총성. (진범이 도이와 다이스케를 사살한 소리)\n",
+   {b:'s'}, " 시 ", {b:'s'}, " 분 : 두 발째의 총성. 이것은 진범이 ", {b:1}, " 을 위해 쏘았다.",
+ ]},
+];
+// 빈칸 총 개수 / 인덱스 부여
+let NB=0; QUESTIONS.forEach(q=>q.parts.forEach(p=>{ if(typeof p==='object'){ p.i=NB++; } }));
+
+/* ============================================================
+   타이머
+   ============================================================ */
+const timerEl=document.getElementById('timer');
+let remain=15*60, tHandle=null;
+function fmt(s){ const m=Math.floor(s/60),x=s%60; return (m<10?'0':'')+m+':'+(x<10?'0':'')+x; }
+function tick(){ if(remain>0){ remain--; timerEl.textContent=fmt(remain); if(remain===0){ timerEl.classList.add('over'); timerEl.textContent='시간 종료'; clearInterval(tHandle); tHandle=null; } } }
+document.getElementById('tStart').addEventListener('click',()=>{ if(tHandle||remain<=0)return; tHandle=setInterval(tick,1000); });
+document.getElementById('tReset').addEventListener('click',()=>{ clearInterval(tHandle); tHandle=null; remain=15*60; timerEl.classList.remove('over'); timerEl.textContent=fmt(remain); });
+
+/* ============================================================
+   공통 렌더 (작성/채점)
+   ============================================================ */
+function buildQuestion(q, mode, answers, grades, onGrade){
+  const card=document.createElement('div'); card.className='card';
+  const t=document.createElement('div'); t.className='qtitle'; t.textContent=q.title; card.appendChild(t);
+  const body=document.createElement('div'); body.className='qbody';
+  q.parts.forEach(p=>{
+    if(typeof p==='string'){ body.appendChild(document.createTextNode(p)); return; }
+    if(mode==='write'){
+      const inp=document.createElement('input'); if(p.b==='s')inp.className='s';
+      inp.dataset.i=p.i; if(answers&&answers[p.i]!=null)inp.value=answers[p.i];
+      body.appendChild(inp);
+    }else{ // grade
+      const wrap=document.createElement('span'); wrap.className='ans';
+      const v=document.createElement('span'); v.className='v';
+      const val=(answers&&answers[p.i])||''; if(val){ v.textContent=val; } else { v.textContent='(빈칸)'; v.classList.add('empty'); }
+      const tg=document.createElement('span'); tg.className='tg';
+      const ob=document.createElement('b'); ob.className='o'; ob.textContent='○';
+      const xb=document.createElement('b'); xb.className='x'; xb.textContent='✗';
+      function paint(){ ob.classList.toggle('sel',grades[p.i]==='o'); xb.classList.toggle('sel',grades[p.i]==='x'); }
+      ob.onclick=()=>{ grades[p.i]= grades[p.i]==='o'?null:'o'; paint(); onGrade(); };
+      xb.onclick=()=>{ grades[p.i]= grades[p.i]==='x'?null:'x'; paint(); onGrade(); };
+      paint(); tg.appendChild(ob); tg.appendChild(xb);
+      wrap.appendChild(v); wrap.appendChild(tg); body.appendChild(wrap);
+    }
+  });
+  card.appendChild(body); return card;
+}
+
+/* ============================================================
+   작성 모드
+   ============================================================ */
+const writeEl=document.getElementById('write');
+function renderWrite(){
+  writeEl.innerHTML='';
+  const nr=document.createElement('div'); nr.className='namerow';
+  nr.innerHTML='<span style="color:var(--muted);font-size:13px">플레이어 이름</span>';
+  const nameI=document.createElement('input'); nameI.id='pname'; nameI.placeholder='이름'; nr.appendChild(nameI);
+  writeEl.appendChild(nr);
+  const h=document.createElement('div'); h.className='hintline'; h.textContent='각 빈칸에 답을 적고, 아래 「코드 생성」을 눌러 나온 코드를 GM에게 보내세요.';
+  writeEl.appendChild(h);
+  QUESTIONS.forEach(q=> writeEl.appendChild(buildQuestion(q,'write')));
+  const act=document.createElement('div'); act.className='actions';
+  const gen=document.createElement('button'); gen.className='btn'; gen.textContent='📨 코드 생성';
+  act.appendChild(gen); writeEl.appendChild(act);
+  const box=document.createElement('div'); box.className='codebox';
+  const ta=document.createElement('textarea'); ta.readOnly=true;
+  const cp=document.createElement('button'); cp.className='tbtn'; cp.textContent='📋 복사'; cp.style.marginTop='6px';
+  box.appendChild(ta); box.appendChild(cp); writeEl.appendChild(box);
+  gen.onclick=()=>{
+    const a=[]; for(let k=0;k<NB;k++) a.push('');
+    writeEl.querySelectorAll('.qbody input').forEach(inp=>{ a[+inp.dataset.i]=inp.value.trim(); });
+    const obj={ n:(nameI.value.trim()||'이름없음'), a };
+    const json=JSON.stringify(obj);
+    const bytes=new TextEncoder().encode(json); let bin=''; bytes.forEach(b=>bin+=String.fromCharCode(b));
+    ta.value='DUEL1::'+btoa(bin);
+    box.style.display='block'; ta.scrollIntoView({behavior:'smooth'});
+  };
+  cp.onclick=()=>{ ta.select(); document.execCommand('copy'); cp.textContent='✅ 복사됨'; setTimeout(()=>cp.textContent='📋 복사',1500); };
+}
+
+/* ============================================================
+   채점 모드 (GM)
+   ============================================================ */
+const gradeEl=document.getElementById('grade');
+function renderGrade(){
+  gradeEl.innerHTML='';
+  const card=document.createElement('div'); card.className='card';
+  card.innerHTML='<div class="qtitle">🧮 GM 채점</div><div class="hintline">플레이어가 보낸 코드를 붙여넣고 「불러오기」. 정답지를 보고 각 빈칸에 ○/✗를 누르면 점수가 합산됩니다.</div>';
+  const pr=document.createElement('div'); pr.className='gpaste';
+  const ta=document.createElement('textarea'); ta.placeholder='여기에 코드 붙여넣기 (DUEL1::...)';
+  const load=document.createElement('button'); load.className='btn'; load.textContent='불러오기';
+  const err=document.createElement('div'); err.className='err';
+  pr.appendChild(ta); pr.appendChild(load); card.appendChild(pr); card.appendChild(err);
+  gradeEl.appendChild(card);
+  const out=document.createElement('div'); gradeEl.appendChild(out);
+  const sb=document.createElement('div'); sb.id='scorebar'; gradeEl.appendChild(sb);
+  load.onclick=()=>{
+    err.textContent='';
+    let code=ta.value.trim(); if(code.startsWith('DUEL1::')) code=code.slice(7);
+    let obj; try{ const bin=atob(code); const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0)); obj=JSON.parse(new TextDecoder().decode(bytes)); }
+    catch(e){ err.textContent='코드를 읽을 수 없습니다. 다시 확인해 주세요.'; return; }
+    if(!obj||!Array.isArray(obj.a)){ err.textContent='형식이 올바르지 않습니다.'; return; }
+    out.innerHTML='';
+    const grades=new Array(NB).fill(null);
+    const who=document.createElement('div'); who.className='who'; who.innerHTML='플레이어: <b>'+(obj.n||'이름없음')+'</b>'; out.appendChild(who);
+    function upd(){ const s=grades.filter(g=>g==='o').length; sb.style.display='block'; sb.textContent='점수  '+s+' / '+NB; }
+    QUESTIONS.forEach(q=> out.appendChild(buildQuestion(q,'grade',obj.a,grades,upd)));
+    upd();
+    out.scrollIntoView({behavior:'smooth'});
+  };
+}
+
+/* ---- 탭 ---- */
+const tabW=document.getElementById('tabWrite'),tabG=document.getElementById('tabGrade');
+function setMode(m){
+  if(m==='write'){ tabW.classList.add('on'); tabG.classList.remove('on'); writeEl.style.display=''; gradeEl.style.display='none'; document.getElementById('timerCtl').style.visibility='visible'; }
+  else{ tabG.classList.add('on'); tabW.classList.remove('on'); writeEl.style.display='none'; gradeEl.style.display=''; renderGrade(); document.getElementById('timerCtl').style.visibility='hidden'; }
+}
+tabW.onclick=()=>setMode('write'); tabG.onclick=()=>setMode('grade');
+
+renderWrite();
+</script>
+</body>
+</html>

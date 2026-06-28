@@ -41,6 +41,7 @@
      padding:1px 6px;color:var(--muted);user-select:none}
   .ans .tg b.o.sel{background:rgba(127,214,160,.18);color:var(--ok);border-color:#2f6f5d}
   .ans .tg b.x.sel{background:rgba(255,107,107,.18);color:var(--no);border-color:#7a3636}
+  .ans .key{color:var(--ok);font-size:12px;margin-left:5px;font-weight:700}
   .namerow{display:flex;align-items:center;gap:10px;margin:6px 0 4px}
   .namerow input{background:#0e1118;border:1px solid var(--line);color:var(--ink);border-radius:9px;
      padding:9px 12px;font-size:14px;font-family:inherit;flex:1;max-width:240px}
@@ -84,6 +85,7 @@
     <div id="grade" style="display:none"></div>
   </main>
 
+<script src="enc.js"></script>
 <script>
 /* ============================================================
    문제·빈칸 정의 (정답은 들어있지 않음 — GM이 직접 채점)
@@ -151,7 +153,9 @@ function buildQuestion(q, mode, answers, grades, onGrade){
       ob.onclick=()=>{ grades[p.i]= grades[p.i]==='o'?null:'o'; paint(); onGrade(); };
       xb.onclick=()=>{ grades[p.i]= grades[p.i]==='x'?null:'x'; paint(); onGrade(); };
       paint(); tg.appendChild(ob); tg.appendChild(xb);
-      wrap.appendChild(v); wrap.appendChild(tg); body.appendChild(wrap);
+      wrap.appendChild(v); wrap.appendChild(tg);
+      if(ANSWERKEY){ const ky=document.createElement('span'); ky.className='key'; ky.textContent='정답: '+ANSWERKEY[p.i]; wrap.appendChild(ky); }
+      body.appendChild(wrap);
     }
   });
   card.appendChild(body); return card;
@@ -192,35 +196,75 @@ function renderWrite(){
 }
 
 /* ============================================================
-   채점 모드 (GM)
+   채점 모드 (GM)  — 정답지는 암호화되어 있고 GM 비밀번호로만 펼침
    ============================================================ */
+let ANSWERKEY=null, GM_last=null;
+function norm(s){ return (s||'').replace(/\s+/g,'').toLowerCase(); }
+function acceptKeys(i){
+  if(i===12||i===14||i===16) return [ANSWERKEY[12],ANSWERKEY[14],ANSWERKEY[16]];
+  if(i===13||i===15||i===17) return [ANSWERKEY[13],ANSWERKEY[15],ANSWERKEY[17]];
+  return [ANSWERKEY[i]];
+}
+function isMatch(player,i){ const a=norm(player); if(!a||!ANSWERKEY) return false;
+  return acceptKeys(i).some(k=>{ const b=norm(k); return b&&(a===b||a.includes(b)||b.includes(a)); }); }
+async function decryptKey(pw){
+  const raw=Uint8Array.from(atob(window.DUELKEY),c=>c.charCodeAt(0));
+  const salt=raw.slice(0,16),iv=raw.slice(16,28),ct=raw.slice(28);
+  const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:200000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
+  return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct)));
+}
 const gradeEl=document.getElementById('grade');
 function renderGrade(){
   gradeEl.innerHTML='';
   const card=document.createElement('div'); card.className='card';
-  card.innerHTML='<div class="qtitle">🧮 GM 채점</div><div class="hintline">플레이어가 보낸 코드를 붙여넣고 「불러오기」. 정답지를 보고 각 빈칸에 ○/✗를 누르면 점수가 합산됩니다.</div>';
+  card.innerHTML='<div class="qtitle">🧮 GM 채점</div><div class="hintline">플레이어가 보낸 코드를 붙여넣고 「불러오기」. 정답지를 펼치면 빈칸마다 정답이 표시되고, 맞은 칸은 ○가 자동으로 찍힙니다 (클릭으로 수정 가능).</div>';
   const pr=document.createElement('div'); pr.className='gpaste';
   const ta=document.createElement('textarea'); ta.placeholder='여기에 코드 붙여넣기 (DUEL1::...)';
   const load=document.createElement('button'); load.className='btn'; load.textContent='불러오기';
   const err=document.createElement('div'); err.className='err';
   pr.appendChild(ta); pr.appendChild(load); card.appendChild(pr); card.appendChild(err);
+  // 정답지 잠금 해제
+  const kr=document.createElement('div'); kr.className='gpaste'; kr.style.marginTop='4px';
+  const kp=document.createElement('input'); kp.type='text'; kp.placeholder='GM 비밀번호'; kp.autocomplete='off';
+  kp.style.cssText='flex:0 0 auto;width:150px;background:#0e1118;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:9px 12px;font-size:13px;font-family:inherit;text-align:center;letter-spacing:2px';
+  const kb=document.createElement('button'); kb.className='tbtn';
+  const kerr=document.createElement('div'); kerr.className='err';
+  function setLockLabel(){ kb.textContent = ANSWERKEY ? '🔓 정답지 펼침' : '🔑 정답지 펼치기';
+    kb.style.borderColor = ANSWERKEY?'var(--ok)':''; kb.style.color = ANSWERKEY?'var(--ok)':''; }
+  setLockLabel(); if(ANSWERKEY) kp.style.display='none';
+  kr.appendChild(kp); kr.appendChild(kb); card.appendChild(kr); card.appendChild(kerr);
   gradeEl.appendChild(card);
   const out=document.createElement('div'); gradeEl.appendChild(out);
   const sb=document.createElement('div'); sb.id='scorebar'; gradeEl.appendChild(sb);
+
+  function showGrades(obj){
+    GM_last=obj; out.innerHTML='';
+    const grades=new Array(NB).fill(null);
+    if(ANSWERKEY){ for(let i=0;i<NB;i++){ if(isMatch(obj.a[i],i)) grades[i]='o'; } }
+    const who=document.createElement('div'); who.className='who';
+    who.innerHTML='플레이어: <b>'+(obj.n||'이름없음')+'</b>'+(ANSWERKEY?'　<span style="color:var(--muted);font-size:12px">(맞은 칸 ○ 자동 · 문3 이능②~④ 순서무관)</span>':'');
+    out.appendChild(who);
+    function upd(){ const s=grades.filter(g=>g==='o').length; sb.style.display='block'; sb.textContent='점수  '+s+' / '+NB; }
+    QUESTIONS.forEach(q=> out.appendChild(buildQuestion(q,'grade',obj.a,grades,upd)));
+    upd(); out.scrollIntoView({behavior:'smooth'});
+  }
   load.onclick=()=>{
     err.textContent='';
     let code=ta.value.trim(); if(code.startsWith('DUEL1::')) code=code.slice(7);
     let obj; try{ const bin=atob(code); const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0)); obj=JSON.parse(new TextDecoder().decode(bytes)); }
     catch(e){ err.textContent='코드를 읽을 수 없습니다. 다시 확인해 주세요.'; return; }
     if(!obj||!Array.isArray(obj.a)){ err.textContent='형식이 올바르지 않습니다.'; return; }
-    out.innerHTML='';
-    const grades=new Array(NB).fill(null);
-    const who=document.createElement('div'); who.className='who'; who.innerHTML='플레이어: <b>'+(obj.n||'이름없음')+'</b>'; out.appendChild(who);
-    function upd(){ const s=grades.filter(g=>g==='o').length; sb.style.display='block'; sb.textContent='점수  '+s+' / '+NB; }
-    QUESTIONS.forEach(q=> out.appendChild(buildQuestion(q,'grade',obj.a,grades,upd)));
-    upd();
-    out.scrollIntoView({behavior:'smooth'});
+    showGrades(obj);
   };
+  kb.onclick=async()=>{
+    if(ANSWERKEY) return;
+    kerr.textContent=''; const pw=kp.value.trim(); if(!pw) return;
+    try{ ANSWERKEY=await decryptKey(pw); }catch(e){ kerr.textContent='GM 비밀번호가 올바르지 않습니다.'; return; }
+    setLockLabel(); kp.style.display='none';
+    if(GM_last) showGrades(GM_last);
+  };
+  kp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); kb.click(); } });
 }
 
 /* ---- 탭 ---- */
